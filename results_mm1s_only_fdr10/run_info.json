@@ -1,0 +1,34 @@
+{
+  "input": "/home/ubuntu/.cursor/projects/workspace/uploads/gene_count_Shabnam_s_data_RNAseq_HUVEC_d1c5.txt",
+  "samples_excluded": [
+    "FNE-CTRL",
+    "FNE-PFOS",
+    "FNE-washout"
+  ],
+  "samples_not_used": [
+    "FNE-CTRL",
+    "FNE-PFOS",
+    "FNE-washout",
+    "HUVEC-MM1S-1",
+    "HUVEC-MM1S-2",
+    "HUVEC-MM1S-3"
+  ],
+  "analysis_scope": "mm1s_only",
+  "samples_used": [
+    "MM1S monoculture-1",
+    "MM1S monoculture-2",
+    "MM1S monoculture-3",
+    "MM1S cocultured-1",
+    "MM1S cocultured-2",
+    "MM1S cocultured-3"
+  ],
+  "filtered_genes_tested": 16891,
+  "contrasts": [
+    "MM1S_coculture_vs_MM1S_monoculture"
+  ],
+  "deg_count_main_contrast": 1720,
+  "fdr_threshold": 0.1,
+  "lfc_threshold": 1.0,
+  "gsea_library": "MSigDB_Hallmark_2020",
+  "gsea_permutations": 1000
+}
