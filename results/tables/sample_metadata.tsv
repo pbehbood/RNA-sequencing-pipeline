@@ -1,0 +1,10 @@
+sample	group	replicate
+MM1S monoculture-1	MM1S_monoculture	1
+MM1S monoculture-2	MM1S_monoculture	2
+MM1S monoculture-3	MM1S_monoculture	3
+MM1S cocultured-1	MM1S_coculture	1
+MM1S cocultured-2	MM1S_coculture	2
+MM1S cocultured-3	MM1S_coculture	3
+HUVEC-MM1S-1	HUVEC_MM1S	1
+HUVEC-MM1S-2	HUVEC_MM1S	2
+HUVEC-MM1S-3	HUVEC_MM1S	3
