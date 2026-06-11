@@ -525,6 +525,7 @@ def write_summary(
     gsea_library: str,
     analysis_scope: str,
 ) -> None:
+    output_root = outdir.as_posix()
     sample_rows = ["| sample | group | replicate |", "| --- | --- | --- |"]
     for _, row in metadata.iterrows():
         sample_rows.append(f"| {row['sample']} | {row['group']} | {row['replicate']} |")
@@ -575,7 +576,7 @@ def write_summary(
             f"- Library: {gsea_library}.",
             f"- Pathways with GSEA FDR q-val < 0.25: {sig_gsea:,}.",
             "",
-            "Primary outputs are in `results/tables`, `results/plots`, and `results/gsea`.",
+            f"Primary outputs are in `{output_root}/tables`, `{output_root}/plots`, and `{output_root}/gsea`.",
             "",
         ]
     )
@@ -688,6 +689,7 @@ def main() -> None:
     run_info = {
         "input": str(Path(args.counts).resolve()),
         "samples_excluded": [col for col in raw.columns[2:] if sample_group(col) is None],
+        "samples_not_used": [col for col in raw.columns[2:] if col not in sample_cols],
         "analysis_scope": args.analysis_scope,
         "samples_used": sample_cols,
         "filtered_genes_tested": int(keep.sum()),
