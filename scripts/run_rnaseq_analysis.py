@@ -213,6 +213,7 @@ def differential_expression(
     )
 
     result = gene_info.copy()
+    result.insert(0, "gene_id", result.index)
     result["baseMean"] = base_mean
     result[f"mean_{numerator_group}"] = num_mean
     result[f"mean_{denominator_group}"] = den_mean
