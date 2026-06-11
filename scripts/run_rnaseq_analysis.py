@@ -35,6 +35,8 @@ CONTRASTS = [
     ("HUVEC_MM1S", "MM1S_monoculture"),
     ("HUVEC_MM1S", "MM1S_coculture"),
 ]
+MM1S_ONLY_GROUPS = ["MM1S_monoculture", "MM1S_coculture"]
+MM1S_ONLY_CONTRASTS = [("MM1S_coculture", "MM1S_monoculture")]
 DEFAULT_INPUT = (
     "/home/ubuntu/.cursor/projects/workspace/uploads/"
     "gene_count_Shabnam_s_data_RNAseq_HUVEC_d1c5.txt"
@@ -54,6 +56,15 @@ def parse_args() -> argparse.Namespace:
         "--outdir",
         default="results",
         help="Directory for tables, plots, and GSEA outputs.",
+    )
+    parser.add_argument(
+        "--analysis-scope",
+        choices=["three_group", "mm1s_only"],
+        default="three_group",
+        help=(
+            "Use three_group for MM1S/HUVEC pairwise contrasts or mm1s_only "
+            "for only MM1S monoculture and coculture samples."
+        ),
     )
     parser.add_argument(
         "--min-count",
@@ -363,6 +374,9 @@ def save_heatmap(
     de_results: dict[str, pd.DataFrame],
     plots_dir: Path,
     tables_dir: Path,
+    all_degs: bool = False,
+    filename_prefix: str = "heatmap_top_DEG_three_groups",
+    title: str = "Top differentially expressed genes across MM1S and HUVEC-MM1S groups",
 ) -> None:
     sig_gene_ids = set()
     for df in de_results.values():
@@ -376,12 +390,12 @@ def save_heatmap(
             rank_rows.append(tmp)
         rank_df = pd.concat(rank_rows, ignore_index=True)
         rank_df["abs_lfc"] = rank_df["log2FoldChange"].abs()
-        top_gene_ids = (
+        ranked_gene_ids = (
             rank_df.sort_values(["padj", "abs_lfc"], ascending=[True, False])
-            .drop_duplicates("gene_id")
-            .head(100)["gene_id"]
+            .drop_duplicates("gene_id")["gene_id"]
             .tolist()
         )
+        top_gene_ids = ranked_gene_ids if all_degs else ranked_gene_ids[:100]
     else:
         main = de_results["MM1S_coculture_vs_MM1S_monoculture"]
         top_gene_ids = main.head(100)["gene_id"].tolist()
@@ -399,7 +413,7 @@ def save_heatmap(
         metadata.sort_values(["group", "replicate"])["sample"].tolist()
     )
     z = z[ordered_samples]
-    z.to_csv(tables_dir / "heatmap_top_DEG_zscores.tsv", sep="\t")
+    z.to_csv(tables_dir / f"{filename_prefix}_zscores.tsv", sep="\t")
 
     group_palette = {
         "MM1S_monoculture": "#4c78a8",
@@ -414,16 +428,38 @@ def save_heatmap(
         col_cluster=False,
         row_cluster=True,
         col_colors=col_colors,
-        figsize=(10, 18),
+        figsize=(10, max(6, min(24, 1.2 + 0.55 * len(top_gene_ids)))),
         xticklabels=True,
         yticklabels=True,
     )
-    g.fig.suptitle("Top differentially expressed genes across MM1S and HUVEC-MM1S groups", y=1.01)
+    g.fig.suptitle(title, y=1.01)
     g.ax_heatmap.set_xlabel("")
     g.ax_heatmap.set_ylabel("")
-    g.savefig(plots_dir / "heatmap_top_DEG_three_groups.png", dpi=300, bbox_inches="tight")
-    g.savefig(plots_dir / "heatmap_top_DEG_three_groups.pdf", bbox_inches="tight")
+    g.savefig(plots_dir / f"{filename_prefix}.png", dpi=300, bbox_inches="tight")
+    g.savefig(plots_dir / f"{filename_prefix}.pdf", bbox_inches="tight")
     plt.close(g.fig)
+
+
+def save_deg_list(de: pd.DataFrame, tables_dir: Path) -> pd.DataFrame:
+    degs = de.loc[de["status"].isin(["up", "down"])].copy()
+    degs = degs.sort_values(["status", "padj", "gene_name"], ascending=[False, True, True])
+    columns = [
+        "gene_id",
+        "gene_name",
+        "status",
+        "log2FoldChange",
+        "padj",
+        "pvalue",
+        "baseMean",
+        "mean_MM1S_coculture",
+        "mean_MM1S_monoculture",
+    ]
+    degs[columns].to_csv(
+        tables_dir / "DEG_list_MM1S_coculture_vs_monoculture.tsv",
+        sep="\t",
+        index=False,
+    )
+    return degs
 
 
 def run_gsea(main_de: pd.DataFrame, outdir: Path, library: str, permutations: int, seed: int) -> pd.DataFrame:
@@ -487,6 +523,7 @@ def write_summary(
     fdr_threshold: float,
     lfc_threshold: float,
     gsea_library: str,
+    analysis_scope: str,
 ) -> None:
     sample_rows = ["| sample | group | replicate |", "| --- | --- | --- |"]
     for _, row in metadata.iterrows():
@@ -495,7 +532,16 @@ def write_summary(
     lines = [
         "# RNA-seq analysis summary",
         "",
-        "FNE samples were excluded before normalization, differential expression, and plotting.",
+        (
+            "FNE samples were excluded before normalization, differential expression, "
+            "and plotting."
+        ),
+        (
+            "For the MM1S-only scope, HUVEC-MM1S samples were also excluded before "
+            "filtering and normalization."
+        )
+        if analysis_scope == "mm1s_only"
+        else "",
         "",
         "## Samples used",
         "",
@@ -547,6 +593,16 @@ def main() -> None:
         directory.mkdir(parents=True, exist_ok=True)
 
     raw, counts_with_info, metadata = read_counts(args.counts)
+    if args.analysis_scope == "mm1s_only":
+        included_groups = MM1S_ONLY_GROUPS
+        contrasts = MM1S_ONLY_CONTRASTS
+    else:
+        included_groups = GROUP_ORDER
+        contrasts = CONTRASTS
+
+    metadata = metadata.loc[metadata["group"].isin(included_groups)].copy()
+    metadata["group"] = metadata["group"].cat.remove_unused_categories()
+    counts_with_info = counts_with_info[["gene_id", "gene_name", *metadata["sample"].tolist()]].copy()
     metadata.to_csv(tables_dir / "sample_metadata.tsv", sep="\t", index=False)
 
     sample_cols = metadata["sample"].tolist()
@@ -572,7 +628,7 @@ def main() -> None:
     save_qc_plots(filtered_raw_counts, norm_numeric, metadata, plots_dir)
 
     de_results: dict[str, pd.DataFrame] = {}
-    for numerator, denominator in CONTRASTS:
+    for numerator, denominator in contrasts:
         name = f"{numerator}_vs_{denominator}"
         de = differential_expression(
             filtered_gene_info,
@@ -589,13 +645,26 @@ def main() -> None:
 
     main_name = "MM1S_coculture_vs_MM1S_monoculture"
     save_volcano(de_results[main_name], plots_dir, args.lfc_threshold, args.fdr_threshold)
-    venn_membership = save_venn(de_results, plots_dir)
-    if not venn_membership.empty:
-        venn_membership = venn_membership.merge(
-            gene_info.reset_index(), on="gene_id", how="left"
+    deg_list = save_deg_list(de_results[main_name], tables_dir)
+    if args.analysis_scope == "three_group":
+        venn_membership = save_venn(de_results, plots_dir)
+        if not venn_membership.empty:
+            venn_membership = venn_membership.merge(
+                gene_info.reset_index(), on="gene_id", how="left"
+            )
+        venn_membership.to_csv(tables_dir / "venn_DEG_membership.tsv", sep="\t", index=False)
+        save_heatmap(norm_counts, metadata, de_results, plots_dir, tables_dir)
+    else:
+        save_heatmap(
+            norm_counts,
+            metadata,
+            de_results,
+            plots_dir,
+            tables_dir,
+            all_degs=True,
+            filename_prefix="heatmap_all_DEG_MM1S_coculture_vs_monoculture",
+            title="All DEGs: MM1S coculture vs MM1S monoculture",
         )
-    venn_membership.to_csv(tables_dir / "venn_DEG_membership.tsv", sep="\t", index=False)
-    save_heatmap(norm_counts, metadata, de_results, plots_dir, tables_dir)
 
     gsea_result = run_gsea(
         de_results[main_name],
@@ -613,14 +682,17 @@ def main() -> None:
         args.fdr_threshold,
         args.lfc_threshold,
         args.gsea_library,
+        args.analysis_scope,
     )
 
     run_info = {
         "input": str(Path(args.counts).resolve()),
         "samples_excluded": [col for col in raw.columns[2:] if sample_group(col) is None],
+        "analysis_scope": args.analysis_scope,
         "samples_used": sample_cols,
         "filtered_genes_tested": int(keep.sum()),
         "contrasts": list(de_results),
+        "deg_count_main_contrast": int(len(deg_list)),
         "fdr_threshold": args.fdr_threshold,
         "lfc_threshold": args.lfc_threshold,
         "gsea_library": args.gsea_library,

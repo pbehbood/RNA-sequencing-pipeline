@@ -54,6 +54,19 @@ python3 scripts/run_rnaseq_analysis.py \
   --outdir results
 ```
 
+Run only the MM1S monoculture and MM1S coculture samples:
+
+```bash
+python3 scripts/run_rnaseq_analysis.py \
+  --counts /path/to/gene_count_Shabnam_s_data_RNAseq_HUVEC_d1c5.txt \
+  --outdir results_mm1s_only \
+  --analysis-scope mm1s_only
+```
+
+The MM1S-only run excludes both `FNE-*` and `HUVEC-MM1S-*` columns before
+gene filtering, normalization, differential-expression testing, heatmap
+generation, volcano plotting, and GSEA.
+
 ## Outputs
 
 - `results/tables/DE_MM1S_coculture_vs_MM1S_monoculture.tsv`
@@ -65,3 +78,11 @@ python3 scripts/run_rnaseq_analysis.py \
 - `results/gsea/MM1S_coculture_vs_monoculture_hallmark/gsea_results.tsv`
 - `results/gsea/MM1S_coculture_vs_monoculture_hallmark/gsea_top20_NES.png`
 - `results/analysis_summary.md`
+
+For the MM1S-only run:
+
+- `results_mm1s_only/tables/DEG_list_MM1S_coculture_vs_monoculture.tsv`
+- `results_mm1s_only/plots/heatmap_all_DEG_MM1S_coculture_vs_monoculture.png`
+- `results_mm1s_only/plots/volcano_MM1S_coculture_vs_monoculture.png`
+- `results_mm1s_only/gsea/MM1S_coculture_vs_monoculture_hallmark/gsea_results.tsv`
+- `results_mm1s_only/analysis_summary.md`
