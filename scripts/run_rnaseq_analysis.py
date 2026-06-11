@@ -430,7 +430,7 @@ def save_heatmap(
         col_colors=col_colors,
         figsize=(10, max(6, min(24, 1.2 + 0.55 * len(top_gene_ids)))),
         xticklabels=True,
-        yticklabels=True,
+        yticklabels=len(top_gene_ids) <= 100,
     )
     g.fig.suptitle(title, y=1.01)
     g.ax_heatmap.set_xlabel("")

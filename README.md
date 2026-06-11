@@ -63,6 +63,16 @@ python3 scripts/run_rnaseq_analysis.py \
   --analysis-scope mm1s_only
 ```
 
+Run the MM1S-only analysis with relaxed DEG calling at `FDR < 0.10`:
+
+```bash
+python3 scripts/run_rnaseq_analysis.py \
+  --counts /path/to/gene_count_Shabnam_s_data_RNAseq_HUVEC_d1c5.txt \
+  --outdir results_mm1s_only_fdr10 \
+  --analysis-scope mm1s_only \
+  --fdr-threshold 0.10
+```
+
 The MM1S-only run excludes both `FNE-*` and `HUVEC-MM1S-*` columns before
 gene filtering, normalization, differential-expression testing, heatmap
 generation, volcano plotting, and GSEA.
@@ -86,3 +96,11 @@ For the MM1S-only run:
 - `results_mm1s_only/plots/volcano_MM1S_coculture_vs_monoculture.png`
 - `results_mm1s_only/gsea/MM1S_coculture_vs_monoculture_hallmark/gsea_results.tsv`
 - `results_mm1s_only/analysis_summary.md`
+
+For the relaxed-FDR MM1S-only run:
+
+- `results_mm1s_only_fdr10/tables/DEG_list_MM1S_coculture_vs_monoculture.tsv`
+- `results_mm1s_only_fdr10/plots/heatmap_all_DEG_MM1S_coculture_vs_monoculture.png`
+- `results_mm1s_only_fdr10/plots/volcano_MM1S_coculture_vs_monoculture.png`
+- `results_mm1s_only_fdr10/gsea/MM1S_coculture_vs_monoculture_hallmark/gsea_results.tsv`
+- `results_mm1s_only_fdr10/analysis_summary.md`
